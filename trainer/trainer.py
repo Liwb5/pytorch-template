@@ -11,8 +11,8 @@ class Trainer(BaseTrainer):
     Note:
         Inherited from BaseTrainer.
     """
-    def __init__(self, model, loss, metrics, optimizer, resume, config,
-                 data_loader, valid_data_loader=None, lr_scheduler=None, train_logger=None):
+    def __init__(self, model, loss, optimizer, resume, config,
+                 data_loader, metrics=None, valid_data_loader=None, lr_scheduler=None, train_logger=None):
         super(Trainer, self).__init__(model, loss, metrics, optimizer, resume, config, train_logger)
         self.config = config
         self.data_loader = data_loader
@@ -114,3 +114,6 @@ class Trainer(BaseTrainer):
             'val_loss': total_val_loss / len(self.valid_data_loader),
             'val_metrics': (total_val_metrics / len(self.valid_data_loader)).tolist()
         }
+
+    def compute_loss(self, logits, labels):
+        pass
