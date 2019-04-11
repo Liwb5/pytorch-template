@@ -17,6 +17,7 @@ import model.metric as module_metric
 import model.model as module_arch
 from trainer import Trainer
 from utils import Recorder 
+from utils import StreamToLogger 
 from utils.config import *
 
 
@@ -112,6 +113,10 @@ if __name__ == '__main__':
                         filemode = 'a',
                         level = getattr(logging, config['log_level'].upper()),
                         format = log_format)
+
+    # redirect stderr to logging file
+    stderr_logger = logging.getLogger('stderr')
+    sys.stderr = StreamToLogger(stderr_logger,getattr(logging, config['log_level'].upper()))
 
     if args.device is not None:
         logging.info('using GPU device %s'%(args.device))
