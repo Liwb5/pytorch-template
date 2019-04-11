@@ -1,0 +1,75 @@
+# 0402: max_selected number
+# 0403: using recall score instead of f-score in ROUGE-L when calculating reward
+# 0404: preprocess data in order to remove sentence which length is shorter than 2
+task_name: train.taskname.v2_5.0406
+log_level: info 
+use_summaryWriter: True
+seed: 1667
+loss: nll_loss
+metrics: rouge_metric
+
+optimizer: 
+    type: Adam
+    args:
+        lr: 0.00001
+        weight_decay: 0.000001
+    
+trainer:
+    type: Trainer
+    reward_type: rouge #inferSent   #rouge    # inferSent, rouge 
+    args:
+        epochs: 30
+        save_period: 1
+        print_loss_every: 20                   # print train loss every [num] batches, related to the batch size
+        print_token_every: 1000000000             # print training tokens to see the result. print every [num] batches 
+        print_val_token_every: 500000000         # print val tokens to see the result. print every [num] batches 
+        do_validation: True 
+        max_norm: 1.0
+        epsilon: 0.9    # the initial probability of exploration
+        save_dir: checkpoints/
+        log_dir: logs/
+        teacher_forcing_ratio: 0.9
+        output_dir: outputs/
+
+data_loader:
+    train_data: ./data/cnn-dailymail/finished_files3/train.json
+    val_data: ./data/cnn-dailymail/finished_files3/val.json
+    test_data: ./data/cnn-dailymail/finished_files3/test.json
+    batch_size: 20
+    shuffle: True
+    val_data_quota: -1
+    data_quota: -1
+
+
+vocabulary: 
+    vocab_file: ./data/dm_data_from_summaRuNNer/origin_data/w2i.json
+    embed_file: ./data/dm_data_from_summaRuNNer/origin_data/embed_glove.840B.300d.153826w.npz
+    sent_trunc: 120
+    doc_trunc: 50
+
+
+lr_scheduler: 
+    type: StepLR
+    args: 
+        step_size: 50
+        gamma: 0.1
+    
+model: 
+    type: RL_AE
+    args: 
+        embed_dim: 300
+        vocab_size: 153826
+        hidden_size: 200
+        max_len: 120
+        sos_id: 2
+        eos_id: 3
+        max_selected: 4
+        rnn_cell: gru
+        input_dropout_p: 0.0 
+        dropout_p: 0.0 
+        bidirectional: True
+        use_attention: False
+        select_mode: distribute 
+        explorate_rate: 3
+        sample_num: 5
+

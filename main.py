@@ -16,7 +16,8 @@ import model.loss as module_loss
 import model.metric as module_metric
 import model.model as module_arch
 from trainer import Trainer
-from utils import Logger
+from utils import Recorder 
+from utils.config import *
 
 
 def get_instance(module, name, config, *args):
@@ -31,14 +32,8 @@ def set_seed(seed):
 def main(config, resume):
     set_seed(config['seed'])
 
-    log_format='%(asctime)s-%(filename)s[line:%(lineno)d]-%(levelname)s: %(message)s'
-    logging.basicConfig(filename = ''.join((config['trainer']['log_dir'], 'log')),
-                        filemode = 'w',
-                        level = getattr(logging, config['log_level'].upper()),
-                        format = log_format)
-
-    logging.info(['config: ', pformat(config)])
-    train_logger = Logger()
+    train_recorder = Recorder()
+    exit()
 
     # setup data_loader instances
     train_data = Dataset(config['data_loader']['train_data'], 
@@ -83,7 +78,7 @@ def main(config, resume):
                       valid_data_loader=valid_data_loader,
                       metrics=metrics,
                       lr_scheduler=lr_scheduler,
-                      train_logger=train_logger)
+                      train_recorder=train_recorder)
 
     logging.info('begin training. ')
     trainer.train()
@@ -93,23 +88,33 @@ if __name__ == '__main__':
     parser.add_argument('-c', '--config', default=None, type=str,
                            help='config file path (default: None)')
     parser.add_argument('-r', '--resume', default=None, type=str,
-                           help='path to latest checkpoint (default: None)')
+                           help='path to checkpoint that you want to reload (default: None)')
     parser.add_argument('-d', '--device', default=None, type=str,
-                           help='indices of GPUs to enable (default: all)')
+                           help='indices of GPU to enable (default: None)')
+    parser.add_argument('-n', '--name', default=None, type=str,
+                           help='task name (default: None)')
     args = parser.parse_args()
 
     if args.config:
-        # load config file
-        config = json.load(open(args.config))
-        path = os.path.join(config['trainer']['save_dir'], config['name'])
+        config = get_config_from_yaml(args.config)
+        config = process_config(config)
+        # save config file so that we can know the config when we look back
+        save_config(args.config, config['trainer']['args']['save_dir']) 
     elif args.resume:
         # load config file from checkpoint, in case new config file is not given.
         # Use '--config' and '--resume' arguments together to load trained model and train more with changed config.
-        config = torch.load(args.resume)['config']
+        config = torch.load(args.resume, map_location=lambda storage, loc:storage)['config']
     else:
-        raise AssertionError("Configuration file need to be specified. Add '-c config.json', for example.")
-    
-    if args.device:
-        os.environ["CUDA_VISIBLE_DEVICES"] = args.device
+        raise AssertionError("Configuration file need to be specified. Add '-c configs/config.yaml', for example.")
+
+    log_format='%(asctime)s-%(levelname)s-%(name)s: %(message)s'
+    logging.basicConfig(filename = ''.join((config['trainer']['args']['log_dir'], 'log')),
+                        filemode = 'a',
+                        level = getattr(logging, config['log_level'].upper()),
+                        format = log_format)
+
+    if args.device is not None:
+        logging.info('using GPU device %s'%(args.device))
+        torch.cuda.set_device(int(args.device))
 
     main(config, args.resume)
