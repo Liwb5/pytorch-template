@@ -32,7 +32,7 @@ trainer:
         output_dir: outputs/
 
 data_loader:
-    train_data: ./data/cnn-dailymail/finished_files3/train.json
+    train_data: ./data/anime/
     val_data: ./data/cnn-dailymail/finished_files3/val.json
     test_data: ./data/cnn-dailymail/finished_files3/test.json
     batch_size: 20
