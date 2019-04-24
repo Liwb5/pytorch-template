@@ -11,10 +11,12 @@ import numpy as np
 from pprint import pprint, pformat
 
 import torch
-import dataloader.data_loaders as module_data
-import model.loss as module_loss
-import model.metric as module_metric
-import model.model as module_arch
+from torch.utils.data import DataLoader, Dataset
+import models.loss as module_loss
+import models.metric as module_metric
+import models
+
+import dataloader as module_data
 from trainer import Trainer
 from utils import Recorder 
 from utils import StreamToLogger 
@@ -34,51 +36,46 @@ def main(config, resume):
     set_seed(config['seed'])
 
     train_recorder = Recorder()
-    exit()
 
     # setup data_loader instances
-    train_data = Dataset(config['data_loader']['train_data'], 
-                        data_quota = config['data_loader']['data_quota'])
+    train_data = getattr(module_data, config['dataloader']['type'])(
+                        data_path = config['dataloader']['args']['train_data'], 
+                        data_quota = config['dataloader']['args']['data_quota']
+                        )
     logging.info('using %d examples to train. ' % len(train_data))
     data_loader = DataLoader(dataset = train_data,
-                            batch_size = config['data_loader']['batch_size'])
-    #  data_loader = get_instance(module_data, 'data_loader', config)
+                            batch_size = config['dataloader']['args']['batch_size'])
 
-    val_data = Dataset(config['data_loader']['val_data'], 
-                        data_quota=config['data_loader']['val_data_quota'])
-    logging.info('using %d examples to val. ' % len(val_data))
-    valid_data_loader = DataLoader(dataset = val_data,
-                            batch_size = config['data_loader']['batch_size'])
-    #  valid_data_loader = data_loader.split_validation()
+    #  val_data = getattr(module_data, config['dataloader']['type'])(
+    #                      data_path = config['dataloader']['args']['val_data'],
+    #                      data_quota = config['dataloader']['args']['data_quota']
+    #                      )
+    #  logging.info('using %d examples to val. ' % len(val_data))
+    #  valid_data_loader = DataLoader(dataset = val_data,
+    #                          batch_size = config['data_loader']['batch_size'])
 
     # build model architecture
-    #  model = get_instance(module_arch, 'arch', config)
     model = getattr(models, config['model']['type'])(config['model']['args'], device=config['device'])
-    logging.info(['model infomation: ', model])
     
     # get function handles of loss and metrics
-    # weights is for unbalanced data or mask padding index
-    weights = torch.ones(config['model']['args']['vocab_size'])
-    weights[vocab.PAD_ID] = 0
-    loss = getattr(module_loss, config['loss'])(weights)
-    #  loss = getattr(module_loss, config['loss'])
+    loss = getattr(module_loss, config['loss'])()
 
-    metrics = [getattr(module_metric, met) for met in config['metrics']]
+    #  metrics = [getattr(module_metric, met) for met in config['metrics']]
 
     # build optimizer, learning rate scheduler. delete every lines containing lr_scheduler for disabling scheduler
-    trainable_params = filter(lambda p: p.requires_grad, model.parameters())
-    optimizer = getattr(torch.optim, config['optimizer']['type'])(trainable_params, **config['optimizer']['args'])
-    lr_scheduler = getattr(torch.optim.lr_scheduler, config['lr_scheduler']['type'])(**config['lr_scheduler']['args'])
-    #  optimizer = get_instance(torch.optim, 'optimizer', config, trainable_params)
-    #  lr_scheduler = get_instance(torch.optim.lr_scheduler, 'lr_scheduler', config, optimizer)
+    g_trainable_params = filter(lambda p: p.requires_grad, model.G.parameters())
+    g_optimizer = getattr(torch.optim, config['optimizer']['generator']['type'])(g_trainable_params, **config['optimizer']['generator']['args'])
 
-    trainer = Trainer(model, loss,  optimizer, 
+    d_trainable_params = filter(lambda p: p.requires_grad, model.D.parameters())
+    d_optimizer = getattr(torch.optim, config['optimizer']['discriminator']['type'])(d_trainable_params, **config['optimizer']['discriminator']['args'])
+
+    trainer = Trainer(model, loss,  g_optimizer, d_optimizer, 
                       resume=resume,
                       config=config,
                       data_loader=data_loader,
-                      valid_data_loader=valid_data_loader,
-                      metrics=metrics,
-                      lr_scheduler=lr_scheduler,
+                      valid_data_loader=None,
+                      metrics=None,
+                      lr_scheduler=None,
                       train_recorder=train_recorder)
 
     logging.info('begin training. ')
@@ -121,5 +118,8 @@ if __name__ == '__main__':
     if args.device is not None:
         logging.info('using GPU device %s'%(args.device))
         torch.cuda.set_device(int(args.device))
+        config['device'] = int(args.device)
+    else:
+        config['device'] = args.device
 
     main(config, args.resume)

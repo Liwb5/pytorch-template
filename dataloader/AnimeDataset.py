@@ -1,9 +1,9 @@
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 import numpy as np 
 import scipy.misc, os
 
-class AnimeDataset(torch.utils.data.Dataset):
+class AnimeDataset(Dataset):
     def __init__(self, data_path, data_quota):
         """
         args:
