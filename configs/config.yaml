@@ -25,8 +25,8 @@ optimizer:
 trainer:
     type: Trainer
     args:
-        epochs: 30
-        save_period: 1
+        epochs: 300
+        save_period: 20
         print_loss_every: 20                   # print train loss every [num] batches, related to the batch size
         print_token_every: 1000000000             # print training tokens to see the result. print every [num] batches 
         print_val_token_every: 500000000         # print val tokens to see the result. print every [num] batches 
@@ -41,7 +41,7 @@ dataloader:
         train_data: ./data/anime/
         # val_data: ./data/cnn-dailymail/finished_files3/val.json
         # test_data: ./data/cnn-dailymail/finished_files3/test.json
-        batch_size: 20
+        batch_size: 200
         shuffle: True
         val_data_quota: -1
         data_quota: -1
@@ -51,7 +51,7 @@ model:
     type: DCGAN
     args: 
         generator:
-            input_dim: 300
+            input_dim: 100
             channels: [512, 256, 128, 64, 3]
             kernel_size: 4
             stride: 2

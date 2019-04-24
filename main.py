@@ -57,6 +57,7 @@ def main(config, resume):
     # build model architecture
     model = getattr(models, config['model']['type'])(config['model']['args'], device=config['device'])
     
+    logging.info(['my PID is: ', os.getpid()])
     # get function handles of loss and metrics
     loss = getattr(module_loss, config['loss'])()
 

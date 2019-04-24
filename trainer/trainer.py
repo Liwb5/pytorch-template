@@ -50,6 +50,8 @@ class Trainer(BaseTrainer):
         """
         self.model.train()
         step_in_epoch = 0
+        loss_g = 0
+        loss_d = 0
         for step, dataset in enumerate(self.data_loader):
             self.global_step += 1
             step_in_epoch += 1
@@ -70,7 +72,7 @@ class Trainer(BaseTrainer):
             else:
                 fake_label = torch.zeros(fake_data.size()[0])
 
-            d_optimizer.zero_grad()
+            self.d_optimizer.zero_grad()
             real_output = self.model.D(real_data)
             real_loss = self.loss(real_output.squeeze(), real_label)
             real_loss.backward()
@@ -79,7 +81,7 @@ class Trainer(BaseTrainer):
             fake_loss = self.loss(fake_output.squeeze(), fake_label)
             fake_loss.backward()
             loss_D = real_loss + fake_loss
-            d_optimizer.step()
+            self.d_optimizer.step()
 
             #train generate
             if self.device is not None:
@@ -87,12 +89,12 @@ class Trainer(BaseTrainer):
             else:
                 fake_label = torch.ones(fake_data.size()[0])
 
-            g_optimizer.zero_grad()
+            self.g_optimizer.zero_grad()
             fake_data = self.model.G(noise)
-            fake_output = discriminator(fake_data)
+            fake_output = self.model.D(fake_data)
             loss_G = self.loss(fake_output.squeeze(), fake_label)
             loss_G.backward()
-            g_optimizer.step()
+            self.g_optimizer.step()
 
             loss_g += loss_G.item()
             loss_d += loss_D.item() 
